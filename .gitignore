@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+
+# VS Code
+.vscode/
+
+ml/dataset/
+*.png
+*.jpg
+.env
+.env.example
+node_modules
