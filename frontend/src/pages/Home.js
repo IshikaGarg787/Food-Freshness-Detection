@@ -262,6 +262,7 @@ export default function Home({ user }) {
           {[
             { icon: "📷", label: "Live Scanner",  desc: "Real-time camera detection",   color: "#16a34a", path: "/scanner" },
             { icon: "📤", label: "Upload Photo",  desc: "Analyze any saved image",       color: "#2563eb", path: "/upload"  },
+            { icon: "❄️", label: "Fridge Monitor",desc: "Auto-monitor & get alerts",     color: "#0f766e", path: "/fridge"  },
             { icon: "🌿", label: "About Project", desc: "Learn how FreshScan works",     color: "#8b5cf6", path: "/about"   },
           ].map(({ icon, label, desc, color, path }) => (
             <div key={path} className="action-card" style={{ "--c": color }} onClick={() => navigate(path)}>
@@ -502,7 +503,7 @@ export default function Home({ user }) {
         /* ── Quick Actions ── */
         .quick-actions { position: relative; z-index: 1; margin-bottom: 28px; }
         .section-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 16px; }
-        .actions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         .action-card {
           display: flex; align-items: center; gap: 16px;
           background: white; border: 1px solid var(--border);
@@ -568,7 +569,7 @@ export default function Home({ user }) {
           .scans-table-header, .scan-row { grid-template-columns: 1fr 120px; padding: 12px 16px; }
           .scans-table-header span:nth-child(n+3), .scan-row > *:nth-child(n+3) { display: none; }
           .scans-section-header { flex-direction: column; align-items: flex-start; }
-          .actions-grid { grid-template-columns: 1fr; }
+          .actions-grid { grid-template-columns: 1fr 1fr; }
         }
       `}</style>
     </div>
