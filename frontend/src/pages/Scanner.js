@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 
-export default function Scanner() {
+export default function Scanner({ user }) {
   const videoRef  = useRef(null);
   const canvasRef = useRef(null);
   const [result,   setResult]   = useState(null);
@@ -31,7 +31,7 @@ export default function Scanner() {
     if (!camReady) return;
 
     const token = localStorage.getItem("token");
-    if (!token) { alert("Please login first"); return; }
+    if (!token) return;  // overlay handles this case
 
     const video  = videoRef.current;
     const canvas = canvasRef.current;
@@ -51,7 +51,7 @@ export default function Scanner() {
       formData.append("food_name", foodName || "Live Scan"); // NEW
 
       try {
-        const res = await fetch("http://localhost:8000/predict", {
+        const res = await fetch("http://127.0.0.1:8000/predict", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },   // NEW: send token
           body: formData,
@@ -68,7 +68,7 @@ export default function Scanner() {
         const data = await res.json();
         setResult(data);
       } catch {
-        alert("Error connecting to backend. Make sure it's running at http://localhost:8000");
+        alert("Error connecting to backend. Make sure it's running at http://127.0.0.1:8000");
       }
       setLoading(false);
       setScanning(false);
@@ -82,6 +82,37 @@ export default function Scanner() {
 
       <div className="scanner-blob scanner-blob-1" />
       <div className="scanner-blob scanner-blob-2" />
+
+      {/* ── NOT LOGGED IN: show login prompt ── */}
+      {!user && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+          zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center",
+          backdropFilter: "blur(4px)",
+        }}>
+          <div style={{
+            background: "white", borderRadius: "20px", padding: "48px 40px",
+            textAlign: "center", maxWidth: "400px", width: "90%",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+          }}>
+            <div style={{ fontSize: "52px", marginBottom: "16px" }}>📷🔒</div>
+            <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#111", marginBottom: "10px" }}>
+              Login to Use Live Scanner
+            </h2>
+            <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "28px", lineHeight: "1.6" }}>
+              Create a free account to start scanning your food items in real time.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <a href="/login" style={{ flex: 1, padding: "12px", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: "12px", fontWeight: "700", fontSize: "15px", textDecoration: "none", textAlign: "center" }}>
+                Login
+              </a>
+              <a href="/signup" style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg,#16a34a,#22c55e)", color: "white", border: "none", borderRadius: "12px", fontWeight: "700", fontSize: "15px", textDecoration: "none", textAlign: "center" }}>
+                Sign Up Free
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div className="scanner-header">

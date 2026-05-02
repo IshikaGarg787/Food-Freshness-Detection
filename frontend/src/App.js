@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home    from "./pages/Home";
 import Scanner from "./pages/Scanner";
@@ -8,14 +8,7 @@ import Login   from "./pages/Login";
 import Signup  from "./pages/Signup";
 import Navbar  from "./components/Navbar";
 
-// ProtectedRoute: redirects to /login if not logged in
-function ProtectedRoute({ user, children }) {
-  if (!user) return <Navigate to="/login" replace />;
-  return children;
-}
-
 function App() {
-  // Try to load user from localStorage on first load
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem("user");
@@ -25,9 +18,7 @@ function App() {
     }
   });
 
-  const handleLogin = (userData) => {
-    setUser(userData);
-  };
+  const handleLogin = (userData) => setUser(userData);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -37,35 +28,19 @@ function App() {
 
   return (
     <Router>
-      {/* Only show Navbar when logged in */}
-      {user && <Navbar user={user} onLogout={handleLogout} />}
+      {/* Navbar always visible — shows Login button when logged out */}
+      <Navbar user={user} onLogout={handleLogout} />
 
       <Routes>
-        {/* Public routes */}
+        {/* All pages publicly accessible — auth handled inside each page */}
+        <Route path="/"        element={<Home    user={user} />} />
+        <Route path="/scanner" element={<Scanner user={user} />} />
+        <Route path="/upload"  element={<Upload  user={user} />} />
+        <Route path="/about"   element={<About />} />
+
+        {/* Auth pages redirect home if already logged in */}
         <Route path="/login"  element={user ? <Navigate to="/" /> : <Login  onLogin={handleLogin} />} />
         <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup onLogin={handleLogin} />} />
-
-        {/* Protected routes — need login */}
-        <Route path="/" element={
-          <ProtectedRoute user={user}>
-            <Home user={user} />
-          </ProtectedRoute>
-        } />
-        <Route path="/scanner" element={
-          <ProtectedRoute user={user}>
-            <Scanner />
-          </ProtectedRoute>
-        } />
-        <Route path="/upload" element={
-          <ProtectedRoute user={user}>
-            <Upload />
-          </ProtectedRoute>
-        } />
-        <Route path="/about" element={
-          <ProtectedRoute user={user}>
-            <About />
-          </ProtectedRoute>
-        } />
       </Routes>
     </Router>
   );

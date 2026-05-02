@@ -69,18 +69,20 @@ export default function Home({ user }) {
   // Fetch recent scans from MongoDB via the backend
   const fetchScans = async () => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setLoadingScans(false);  // not logged in — stop spinner immediately
+      return;
+    }
 
     try {
-      const res  = await fetch("http://localhost:8000/scans/recent?limit=10", {
+      const res  = await fetch("http://127.0.0.1:8000/scans/recent?limit=10", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.status === 401) {
-        // Token expired — log out
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "/login";
+        window.location.reload();
         return;
       }
 
@@ -96,12 +98,14 @@ export default function Home({ user }) {
     }
   };
 
-  // Fetch on mount, then auto-refresh every 15 seconds
+  // Fetch on mount and whenever user changes, then auto-refresh every 15s
   useEffect(() => {
+    setLoadingScans(true);
     fetchScans();
+    if (!user) return;  // don't set up interval if logged out
     const interval = setInterval(fetchScans, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const freshCount   = recentScans.filter(s => s.result === "Fresh").length;
   const spoiledCount = recentScans.length - freshCount;
@@ -154,15 +158,17 @@ export default function Home({ user }) {
           <div>
             <h2 className="scans-section-title">🕐 Recent Scans</h2>
             <p className="scans-section-sub">
-              {loadingScans
-                ? "Loading your scans..."
-                : recentScans.length > 0
-                  ? `Showing your last ${recentScans.length} scans · refreshes every 15s`
-                  : "No scans yet — run your first scan!"}
+              {!user
+                ? "Login to view your personal scan history"
+                : loadingScans
+                  ? "Loading your scans..."
+                  : recentScans.length > 0
+                    ? `Showing your last ${recentScans.length} scans · refreshes every 15s`
+                    : "No scans yet — run your first scan!"}
             </p>
           </div>
           <div className="scans-stats">
-            {!loadingScans && recentScans.length > 0 && (
+            {user && !loadingScans && recentScans.length > 0 && (
               <>
                 <div className="stat-pill stat-fresh">
                   <span className="stat-pill-dot" style={{ background: "#16a34a" }} />
@@ -190,7 +196,26 @@ export default function Home({ user }) {
           </div>
 
           <div className="scans-list">
-            {loadingScans ? (
+            {!user ? (
+              /* ── Not logged in ── */
+              <div style={{ padding: "48px 32px", textAlign: "center" }}>
+                <div style={{ fontSize: "52px", marginBottom: "14px" }}>🔒</div>
+                <p style={{ color: "#374151", fontSize: "16px", fontWeight: "700", marginBottom: "6px" }}>
+                  Login to see your scan history
+                </p>
+                <p style={{ color: "#9ca3af", fontSize: "13px", marginBottom: "20px" }}>
+                  Your predictions will appear here after you sign in.
+                </p>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+                  <a href="/login" style={{ padding: "10px 22px", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: "10px", fontWeight: "700", fontSize: "14px", textDecoration: "none" }}>
+                    Login
+                  </a>
+                  <a href="/signup" style={{ padding: "10px 22px", background: "linear-gradient(135deg,#16a34a,#22c55e)", color: "white", border: "none", borderRadius: "10px", fontWeight: "700", fontSize: "14px", textDecoration: "none" }}>
+                    Sign Up Free
+                  </a>
+                </div>
+              </div>
+            ) : loadingScans ? (
               <div style={{ padding: "32px", textAlign: "center", color: "#6b7280", fontSize: "14px" }}>
                 ⏳ Loading your scans...
               </div>
