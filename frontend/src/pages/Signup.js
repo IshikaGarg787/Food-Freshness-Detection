@@ -1,21 +1,22 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import API from "../api";
 
 export default function Signup({ onLogin }) {
   const navigate = useNavigate();
 
   // Step 1 fields
-  const [name,     setName]     = useState("");
-  const [email,    setEmail]    = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   // Step 2 — OTP
-  const [step,    setStep]    = useState(1);   // 1 = form, 2 = otp
-  const [otp,     setOtp]     = useState(["", "", "", "", "", ""]);
+  const [step, setStep] = useState(1);   // 1 = form, 2 = otp
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [resendMsg, setResendMsg] = useState("");
 
   // ── Step 1: Submit form ──────────────────────────────────
@@ -30,7 +31,7 @@ export default function Signup({ onLogin }) {
 
     setLoading(true);
     try {
-      const res  = await fetch("http://127.0.0.1:8000/auth/signup", {
+      const res = await fetch(`${API}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -76,38 +77,42 @@ export default function Signup({ onLogin }) {
 
   // ── Step 2: Verify OTP ───────────────────────────────────
   const handleVerify = async (e) => {
-    e.preventDefault();
-    setError("");
-    const otpString = otp.join("");
-    if (otpString.length < 6) {
-      setError("Please enter all 6 digits.");
+  e.preventDefault();
+  setError("");
+
+  const otpString = otp.join("");
+
+  if (otpString.length < 6) {
+    setError("Please enter all 6 digits.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await fetch(`${API}/auth/verify-signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp: otpString }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.detail || "Wrong OTP. Please try again.");
       return;
     }
 
-    setLoading(true);
-    try {
-      const res  = await fetch("http://127.0.0.1:8000/auth/verify-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: otpString }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.detail || "Wrong OTP. Please try again.");
-        return;
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user",  JSON.stringify(data.user));
-      onLogin(data.user);
-      navigate("/");
-    } catch {
-      setError("Could not connect to server.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    onLogin(data.user);
+    navigate("/");
+  } catch (err) {
+    setError("Could not connect to server.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ── Resend OTP ───────────────────────────────────────────
   const handleResend = async () => {
@@ -117,11 +122,14 @@ export default function Signup({ onLogin }) {
     otpRefs[0].current?.focus();
 
     try {
-      const res  = await fetch("http://127.0.0.1:8000/auth/resend-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, purpose: "signup" }),
-      });
+      const resendOtp = async () => {
+        await fetch(`${API}/auth/resend-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, purpose: "signup" }),
+        });
+        alert("OTP resent!");
+      };
       const data = await res.json();
       if (res.ok) setResendMsg("✅ New OTP sent! Check your inbox.");
       else setError(data.detail || "Failed to resend OTP.");
@@ -176,7 +184,7 @@ export default function Signup({ onLogin }) {
               <strong style={{ color: "#16a34a" }}>{email}</strong>
             </p>
 
-            {error     && <div style={styles.errorBox}>{error}</div>}
+            {error && <div style={styles.errorBox}>{error}</div>}
             {resendMsg && <div style={styles.successBox}>{resendMsg}</div>}
 
             <form onSubmit={handleVerify} style={styles.form}>
@@ -195,7 +203,7 @@ export default function Signup({ onLogin }) {
                     style={{
                       ...styles.otpBox,
                       borderColor: digit ? "#16a34a" : "#d1fae5",
-                      background:  digit ? "#f0fdf4" : "white",
+                      background: digit ? "#f0fdf4" : "white",
                     }}
                     autoFocus={i === 0}
                   />
@@ -216,7 +224,7 @@ export default function Signup({ onLogin }) {
               </button>
             </div>
 
-            <button onClick={() => { setStep(1); setError(""); setOtp(["","","","","",""]); }}
+            <button onClick={() => { setStep(1); setError(""); setOtp(["", "", "", "", "", ""]); }}
               style={styles.backBtn}>
               ← Change email
             </button>
@@ -238,8 +246,8 @@ const styles = {
     width: "100%", maxWidth: "420px",
     boxShadow: "0 20px 60px rgba(0,0,0,0.1)", textAlign: "center",
   },
-  logo:     { fontSize: "52px", marginBottom: "16px" },
-  title:    { fontSize: "26px", fontWeight: "800", color: "#111", margin: "0 0 8px" },
+  logo: { fontSize: "52px", marginBottom: "16px" },
+  title: { fontSize: "26px", fontWeight: "800", color: "#111", margin: "0 0 8px" },
   subtitle: { fontSize: "14px", color: "#6b7280", marginBottom: "24px", lineHeight: "1.6" },
   errorBox: {
     background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626",
@@ -251,7 +259,7 @@ const styles = {
     borderRadius: "10px", padding: "12px 16px", fontSize: "14px",
     marginBottom: "16px",
   },
-  form:  { display: "flex", flexDirection: "column", gap: "14px" },
+  form: { display: "flex", flexDirection: "column", gap: "14px" },
   field: { display: "flex", flexDirection: "column", gap: "6px", textAlign: "left" },
   label: { fontSize: "13px", fontWeight: "600", color: "#374151" },
   input: {

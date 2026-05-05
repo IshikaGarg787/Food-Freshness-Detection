@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
+
 
 // ─── Helper: format ISO timestamp → "2 min ago" ──────────
 function timeAgo(isoString) {
@@ -75,7 +77,7 @@ export default function Home({ user }) {
     }
 
     try {
-      const res  = await fetch("http://127.0.0.1:8000/scans/recent?limit=10", {
+      const res = await fetch(`${API}/scans/recent?limit=10`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

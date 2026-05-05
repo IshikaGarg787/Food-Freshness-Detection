@@ -1,22 +1,23 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
 
 // ─── Helper: format timestamp ────────────────────────────
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60)   return `${Math.floor(diff)}s ago`;
+  if (diff < 60) return `${Math.floor(diff)}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   return `${Math.floor(diff / 3600)} hr ago`;
 }
 
 function resultColor(result) {
-  if (result === "Fresh")   return { bg: "#dcfce7", color: "#166534", border: "#86efac" };
+  if (result === "Fresh") return { bg: "#dcfce7", color: "#166534", border: "#86efac" };
   if (result === "At Risk") return { bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
-  return                           { bg: "#fef2f2", color: "#991b1b", border: "#fca5a5" };
+  return { bg: "#fef2f2", color: "#991b1b", border: "#fca5a5" };
 }
 
 function resultIcon(result) {
-  if (result === "Fresh")   return "✅";
+  if (result === "Fresh") return "✅";
   if (result === "At Risk") return "⚠️";
   return "🚨";
 }
@@ -68,23 +69,23 @@ function ItemCard({ item, index }) {
 
 // ─── Main Component ──────────────────────────────────────
 export default function FridgeMonitor({ user }) {
-  const navigate   = useNavigate();
-  const videoRef   = useRef(null);
-  const canvasRef  = useRef(null);
+  const navigate = useNavigate();
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const intervalRef = useRef(null);
 
-  const [camReady,     setCamReady]     = useState(false);
-  const [monitoring,   setMonitoring]   = useState(false);
-  const [scanning,     setScanning]     = useState(false);
-  const [foodName,     setFoodName]     = useState("");
-  const [temperature,  setTemperature]  = useState(4);
+  const [camReady, setCamReady] = useState(false);
+  const [monitoring, setMonitoring] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [foodName, setFoodName] = useState("");
+  const [temperature, setTemperature] = useState(4);
   const [scanInterval, setScanInterval] = useState(30);   // seconds
   const [detectedItems, setDetectedItems] = useState([]);
-  const [history,      setHistory]      = useState([]);
-  const [lastScan,     setLastScan]     = useState(null);
-  const [countdown,    setCountdown]    = useState(0);
-  const [alertLog,     setAlertLog]     = useState([]);
-  const [activeTab,    setActiveTab]    = useState("live"); // live | history
+  const [history, setHistory] = useState([]);
+  const [lastScan, setLastScan] = useState(null);
+  const [countdown, setCountdown] = useState(0);
+  const [alertLog, setAlertLog] = useState([]);
+  const [activeTab, setActiveTab] = useState("live"); // live | history
 
   // ── Start camera ────────────────────────────────────────
   useEffect(() => {
@@ -109,12 +110,12 @@ export default function FridgeMonitor({ user }) {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res  = await fetch("http://127.0.0.1:8000/fridge/history?limit=30", {
+      const res = await fetch(`${API}/fridge/history?limit=30`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       setHistory(data);
-    } catch {}
+    } catch { }
   };
 
   // ── Single scan ──────────────────────────────────────────
@@ -123,9 +124,9 @@ export default function FridgeMonitor({ user }) {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const video  = videoRef.current;
+    const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width  = video.videoWidth;
+    canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
@@ -134,13 +135,13 @@ export default function FridgeMonitor({ user }) {
     canvas.toBlob(async (blob) => {
       const formData = new FormData();
       formData.append("file", blob, "fridge_frame.jpg");
-      formData.append("food_name",     foodName || "Fridge Item");
-      formData.append("temperature",   temperature);
-      formData.append("humidity",      65);
+      formData.append("food_name", foodName || "Fridge Item");
+      formData.append("temperature", temperature);
+      formData.append("humidity", 65);
       formData.append("storage_hours", 24);
 
       try {
-        const res  = await fetch("http://127.0.0.1:8000/fridge/scan", {
+        const res = await fetch(`${API}/fridge/scan`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -148,13 +149,13 @@ export default function FridgeMonitor({ user }) {
         const data = await res.json();
 
         const newItem = {
-          id:          Date.now(),
-          food_name:   foodName || "Fridge Item",
-          result:      data.result,
-          confidence:  data.confidence,
+          id: Date.now(),
+          food_name: foodName || "Fridge Item",
+          result: data.result,
+          confidence: data.confidence,
           explanation: data.explanation,
-          scanned_at:  data.scanned_at,
-          email_sent:  data.email_sent,
+          scanned_at: data.scanned_at,
+          email_sent: data.email_sent,
         };
 
         setDetectedItems(prev => [newItem, ...prev].slice(0, 12));
@@ -204,8 +205,8 @@ export default function FridgeMonitor({ user }) {
   };
 
   // ── Stats ────────────────────────────────────────────────
-  const freshCount   = detectedItems.filter(i => i.result === "Fresh").length;
-  const atRiskCount  = detectedItems.filter(i => i.result === "At Risk").length;
+  const freshCount = detectedItems.filter(i => i.result === "Fresh").length;
+  const atRiskCount = detectedItems.filter(i => i.result === "At Risk").length;
   const spoiledCount = detectedItems.filter(i => i.result === "Spoiled").length;
 
   return (
@@ -239,7 +240,7 @@ export default function FridgeMonitor({ user }) {
               Create a free account to start auto-monitoring your fridge and receive spoilage alerts.
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <a href="/login"  style={{ flex: 1, padding: "12px", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: "12px", fontWeight: "700", fontSize: "15px", textDecoration: "none", textAlign: "center" }}>Login</a>
+              <a href="/login" style={{ flex: 1, padding: "12px", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: "12px", fontWeight: "700", fontSize: "15px", textDecoration: "none", textAlign: "center" }}>Login</a>
               <a href="/signup" style={{ flex: 1, padding: "12px", background: "linear-gradient(135deg,#16a34a,#22c55e)", color: "white", border: "none", borderRadius: "12px", fontWeight: "700", fontSize: "15px", textDecoration: "none", textAlign: "center" }}>Sign Up Free</a>
             </div>
           </div>
@@ -264,7 +265,7 @@ export default function FridgeMonitor({ user }) {
           {/* Camera Frame */}
           <div className="fridge-cam-frame">
             {/* Corner brackets */}
-            {["tl","tr","bl","br"].map(c => <div key={c} className={`fc-corner fc-${c}`} />)}
+            {["tl", "tr", "bl", "br"].map(c => <div key={c} className={`fc-corner fc-${c}`} />)}
 
             {/* Scanning overlay */}
             {scanning && (
@@ -381,8 +382,8 @@ export default function FridgeMonitor({ user }) {
           {detectedItems.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px" }}>
               {[
-                { label: "Fresh",   count: freshCount,   bg: "#dcfce7", color: "#166534" },
-                { label: "At Risk", count: atRiskCount,  bg: "#fff7ed", color: "#c2410c" },
+                { label: "Fresh", count: freshCount, bg: "#dcfce7", color: "#166534" },
+                { label: "At Risk", count: atRiskCount, bg: "#fff7ed", color: "#c2410c" },
                 { label: "Spoiled", count: spoiledCount, bg: "#fef2f2", color: "#991b1b" },
               ].map(s => (
                 <div key={s.label} style={{ background: s.bg, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
@@ -420,7 +421,7 @@ export default function FridgeMonitor({ user }) {
           {/* Tabs */}
           <div style={{ display: "flex", gap: "4px", background: "#f1f5f9", borderRadius: "12px", padding: "4px", marginBottom: "16px" }}>
             {[
-              { key: "live",    label: "🔴 Live Detections" },
+              { key: "live", label: "🔴 Live Detections" },
               { key: "history", label: "📋 Full History" },
             ].map(t => (
               <button

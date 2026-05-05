@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import API from "../api";
 
 export default function Upload({ user }) {
   const [file, setFile]           = useState(null);
@@ -40,7 +41,7 @@ export default function Upload({ user }) {
 
     try {
       setLoading(true);
-      const res = await fetch("http://127.0.0.1:8000/predict", {
+      const res = await fetch(`${API}/predict`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },     // NEW: send token
         body: formData,

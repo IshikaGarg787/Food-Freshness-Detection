@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import API from "../api";
 
 export default function Scanner({ user }) {
   const videoRef  = useRef(null);
@@ -51,7 +52,7 @@ export default function Scanner({ user }) {
       formData.append("food_name", foodName || "Live Scan"); // NEW
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/predict", {
+        const res = await fetch(`${API}/predict`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },   // NEW: send token
           body: formData,

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import API from "../api";
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const res  = await fetch("http://127.0.0.1:8000/auth/login", {
+      const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -113,3 +114,5 @@ const styles = {
   switchText: { marginTop: "20px", fontSize: "13px", color: "#6b7280" },
   link: { color: "#16a34a", fontWeight: "700", textDecoration: "none" },
 };
+
+console.log("API =", API);
