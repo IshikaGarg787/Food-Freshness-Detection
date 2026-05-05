@@ -5,6 +5,7 @@ pillow
 numpy
 pymongo
 python-jose[cryptography]
+PyJWT
 bcrypt
 python-dotenv
 python-multipart
