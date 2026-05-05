@@ -41,7 +41,10 @@ JWT_EXPIRE_HOURS = 24
 security = HTTPBearer()
 
 # ─── Load ML Model ───────────────────────────────────────
-MODEL_PATH = os.getenv("MODEL_PATH", "./ml/model/freshness_model.h5")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "ml", "model", "freshness_model.h5")
+
 model = load_model(MODEL_PATH)
 class_labels = ["Fresh", "Spoiled"]
 
