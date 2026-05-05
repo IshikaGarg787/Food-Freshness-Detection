@@ -71,60 +71,195 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 #  AUTH ROUTES
 # ════════════════════════════════════════════════════════════
 
+import random
+import string
+
+# OTP temporary storage in MongoDB
+otp_collection = db["otps"]
+
+# ─── Helper: Generate 6-digit OTP ────────────────────────
+def generate_otp():
+    return "".join(random.choices(string.digits, k=6))
+
+# ─── Helper: Send OTP Email ──────────────────────────────
+def send_otp_email(to_email: str, otp: str, purpose: str = "verify"):
+    smtp_email    = os.getenv("SMTP_EMAIL")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+
+    if not smtp_email or not smtp_password:
+        print(f"⚠️  SMTP not configured — OTP is: {otp}")
+        return True   # allow in dev without SMTP
+
+    action = "create your account" if purpose == "signup" else "log in to your account"
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+      <div style="background:linear-gradient(135deg,#166534,#16a34a);padding:32px;text-align:center">
+        <div style="font-size:48px">🥬</div>
+        <h1 style="color:white;margin:12px 0 4px;font-size:22px">FreshScan Verification</h1>
+        <p style="color:#bbf7d0;margin:0;font-size:14px">Your one-time password</p>
+      </div>
+      <div style="padding:36px;text-align:center">
+        <p style="color:#374151;font-size:15px;margin-bottom:24px">
+          Use the code below to {action}:
+        </p>
+        <div style="background:#f0fdf4;border:2px dashed #86efac;border-radius:16px;padding:24px;margin:0 auto;max-width:260px">
+          <div style="font-size:42px;font-weight:900;letter-spacing:10px;color:#166534;font-family:monospace">
+            {otp}
+          </div>
+        </div>
+        <p style="color:#9ca3af;font-size:13px;margin-top:20px">
+          ⏰ This code expires in <strong>10 minutes</strong>
+        </p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:8px">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+      <div style="background:#f8fafc;padding:16px;text-align:center;border-top:1px solid #e2e8f0">
+        <p style="color:#9ca3af;font-size:11px;margin:0">Sent by FreshScan · {datetime.utcnow().strftime("%d %b %Y, %H:%M")} UTC</p>
+      </div>
+    </div>
+    """
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"🔐 Your FreshScan OTP: {otp}"
+        msg["From"]    = smtp_email
+        msg["To"]      = to_email
+        msg.attach(MIMEText(html, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(smtp_email, smtp_password)
+            server.sendmail(smtp_email, to_email, msg.as_string())
+
+        print(f"✅ OTP email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ OTP email error: {e}")
+        return False
+
+
+# ════════════════════════════════════════════════════════════
+#  STEP 1 — SIGNUP: save pending user, send OTP
+# ════════════════════════════════════════════════════════════
 @app.post("/auth/signup")
 async def signup(data: dict):
-    """
-    Expects: { "name": "...", "email": "...", "password": "..." }
-    """
     name     = data.get("name", "").strip()
     email    = data.get("email", "").strip().lower()
     password = data.get("password", "")
 
     if not name or not email or not password:
         raise HTTPException(status_code=400, detail="Name, email, and password are required.")
-
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
 
-    # Check if user already exists
-    existing = users_collection.find_one({"email": email})
+    # Check duplicate
+    existing = users_collection.find_one({"email": email, "verified": True})
     if existing:
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
     # Hash password
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
-    # Save user to MongoDB
-    user = {
-        "name": name,
-        "email": email,
-        "password": hashed,
-        "created_at": datetime.utcnow()
-    }
-    result = users_collection.insert_one(user)
-    user_id = str(result.inserted_id)
+    # Save as unverified user (overwrite any previous unverified attempt)
+    users_collection.update_one(
+        {"email": email, "verified": {"$ne": True}},
+        {"$set": {
+            "name": name, "email": email,
+            "password": hashed,
+            "verified": False,
+            "created_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
 
-    token = create_token(user_id, email)
+    # Generate & store OTP
+    otp = generate_otp()
+    otp_collection.update_one(
+        {"email": email, "purpose": "signup"},
+        {"$set": {
+            "email": email, "purpose": "signup",
+            "otp": otp,
+            "expires_at": datetime.utcnow() + timedelta(minutes=10),
+            "attempts": 0
+        }},
+        upsert=True
+    )
+
+    sent = send_otp_email(email, otp, purpose="signup")
 
     return {
-        "message": "Account created successfully!",
-        "token": token,
-        "user": {"id": user_id, "name": name, "email": email}
+        "message": f"OTP sent to {email}. Please check your inbox.",
+        "email": email,
+        "otp_required": True
     }
 
 
+# ════════════════════════════════════════════════════════════
+#  STEP 2 — VERIFY SIGNUP OTP → create account
+# ════════════════════════════════════════════════════════════
+@app.post("/auth/verify-signup")
+async def verify_signup(data: dict):
+    email = data.get("email", "").strip().lower()
+    otp   = data.get("otp", "").strip()
+
+    if not email or not otp:
+        raise HTTPException(status_code=400, detail="Email and OTP are required.")
+
+    record = otp_collection.find_one({"email": email, "purpose": "signup"})
+    if not record:
+        raise HTTPException(status_code=400, detail="No OTP found. Please signup again.")
+
+    if datetime.utcnow() > record["expires_at"]:
+        otp_collection.delete_one({"email": email, "purpose": "signup"})
+        raise HTTPException(status_code=400, detail="OTP has expired. Please signup again.")
+
+    if record.get("attempts", 0) >= 5:
+        raise HTTPException(status_code=429, detail="Too many wrong attempts. Please signup again.")
+
+    if record["otp"] != otp:
+        otp_collection.update_one(
+            {"email": email, "purpose": "signup"},
+            {"$inc": {"attempts": 1}}
+        )
+        remaining = 4 - record.get("attempts", 0)
+        raise HTTPException(status_code=400, detail=f"Wrong OTP. {remaining} attempts remaining.")
+
+    # OTP correct — mark user as verified
+    user = users_collection.find_one_and_update(
+        {"email": email},
+        {"$set": {"verified": True}},
+        return_document=True
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found. Please signup again.")
+
+    # Clean up OTP
+    otp_collection.delete_one({"email": email, "purpose": "signup"})
+
+    user_id = str(user["_id"])
+    token   = create_token(user_id, email)
+
+    return {
+        "message": "Account verified and created successfully!",
+        "token": token,
+        "user": {"id": user_id, "name": user["name"], "email": email}
+    }
+
+
+# ════════════════════════════════════════════════════════════
+#  LOGIN — direct email + password, no OTP needed
+#  (email already verified during signup)
+# ════════════════════════════════════════════════════════════
 @app.post("/auth/login")
 async def login(data: dict):
-    """
-    Expects: { "email": "...", "password": "..." }
-    """
     email    = data.get("email", "").strip().lower()
     password = data.get("password", "")
 
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password are required.")
 
-    user = users_collection.find_one({"email": email})
+    user = users_collection.find_one({"email": email, "verified": True})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
@@ -139,6 +274,30 @@ async def login(data: dict):
         "token": token,
         "user": {"id": user_id, "name": user["name"], "email": email}
     }
+
+
+# ─── Resend OTP ───────────────────────────────────────────
+@app.post("/auth/resend-otp")
+async def resend_otp(data: dict):
+    email   = data.get("email", "").strip().lower()
+    purpose = data.get("purpose", "login")  # "login" or "signup"
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required.")
+
+    otp = generate_otp()
+    otp_collection.update_one(
+        {"email": email, "purpose": purpose},
+        {"$set": {
+            "otp": otp,
+            "expires_at": datetime.utcnow() + timedelta(minutes=10),
+            "attempts": 0
+        }},
+        upsert=True
+    )
+
+    send_otp_email(email, otp, purpose=purpose)
+    return {"message": f"New OTP sent to {email}."}
 
 
 @app.get("/auth/me")
