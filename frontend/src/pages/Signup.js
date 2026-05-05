@@ -77,42 +77,42 @@ export default function Signup({ onLogin }) {
 
   // ── Step 2: Verify OTP ───────────────────────────────────
   const handleVerify = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  const otpString = otp.join("");
+    const otpString = otp.join("");
 
-  if (otpString.length < 6) {
-    setError("Please enter all 6 digits.");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await fetch(`${API}/auth/verify-signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp: otpString }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setError(data.detail || "Wrong OTP. Please try again.");
+    if (otpString.length < 6) {
+      setError("Please enter all 6 digits.");
       return;
     }
 
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    onLogin(data.user);
-    navigate("/");
-  } catch (err) {
-    setError("Could not connect to server.");
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API}/auth/verify-signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: otpString }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.detail || "Wrong OTP. Please try again.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      onLogin(data.user);
+      navigate("/");
+    } catch (err) {
+      setError("Could not connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ── Resend OTP ───────────────────────────────────────────
   const handleResend = async () => {
@@ -122,18 +122,20 @@ export default function Signup({ onLogin }) {
     otpRefs[0].current?.focus();
 
     try {
-      const resendOtp = async () => {
-        await fetch(`${API}/auth/resend-otp`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, purpose: "signup" }),
-        });
-        alert("OTP resent!");
-      };
+      const res = await fetch(`${API}/auth/resend-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, purpose: "signup" }),
+      });
+
       const data = await res.json();
-      if (res.ok) setResendMsg("✅ New OTP sent! Check your inbox.");
-      else setError(data.detail || "Failed to resend OTP.");
-    } catch {
+
+      if (res.ok) {
+        setResendMsg("✅ New OTP sent! Check your inbox.");
+      } else {
+        setError(data.detail || "Failed to resend OTP.");
+      }
+    } catch (err) {
       setError("Could not connect to server.");
     }
   };
