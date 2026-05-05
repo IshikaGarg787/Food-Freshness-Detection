@@ -1,6 +1,10 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
@@ -85,62 +89,45 @@ def generate_otp():
     return "".join(random.choices(string.digits, k=6))
 
 # ─── Helper: Send OTP Email ──────────────────────────────
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
 def send_otp_email(to_email: str, otp: str, purpose: str = "verify"):
-    smtp_email    = os.getenv("SMTP_EMAIL")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+    FROM_EMAIL = os.getenv("FROM_EMAIL")
 
-    if not smtp_email or not smtp_password:
-        print(f"⚠️  SMTP not configured — OTP is: {otp}")
-        return True   # allow in dev without SMTP
-
-    action = "create your account" if purpose == "signup" else "log in to your account"
-
-    html = f"""
-    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
-      <div style="background:linear-gradient(135deg,#166534,#16a34a);padding:32px;text-align:center">
-        <div style="font-size:48px">🥬</div>
-        <h1 style="color:white;margin:12px 0 4px;font-size:22px">FreshScan Verification</h1>
-        <p style="color:#bbf7d0;margin:0;font-size:14px">Your one-time password</p>
-      </div>
-      <div style="padding:36px;text-align:center">
-        <p style="color:#374151;font-size:15px;margin-bottom:24px">
-          Use the code below to {action}:
-        </p>
-        <div style="background:#f0fdf4;border:2px dashed #86efac;border-radius:16px;padding:24px;margin:0 auto;max-width:260px">
-          <div style="font-size:42px;font-weight:900;letter-spacing:10px;color:#166534;font-family:monospace">
-            {otp}
-          </div>
-        </div>
-        <p style="color:#9ca3af;font-size:13px;margin-top:20px">
-          ⏰ This code expires in <strong>10 minutes</strong>
-        </p>
-        <p style="color:#9ca3af;font-size:12px;margin-top:8px">
-          If you didn't request this, you can safely ignore this email.
-        </p>
-      </div>
-      <div style="background:#f8fafc;padding:16px;text-align:center;border-top:1px solid #e2e8f0">
-        <p style="color:#9ca3af;font-size:11px;margin:0">Sent by FreshScan · {datetime.utcnow().strftime("%d %b %Y, %H:%M")} UTC</p>
-      </div>
-    </div>
-    """
-
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"🔐 Your FreshScan OTP: {otp}"
-        msg["From"]    = smtp_email
-        msg["To"]      = to_email
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(smtp_email, smtp_password)
-            server.sendmail(smtp_email, to_email, msg.as_string())
-
-        print(f"✅ OTP email sent to {to_email}")
-        return True
-    except Exception as e:
-        print(f"❌ OTP email error: {e}")
+    if not SENDGRID_API_KEY or not FROM_EMAIL:
+        print("❌ SendGrid not configured properly")
         return False
 
+    try:
+        action = "create your account" if purpose == "signup" else "log in"
+
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=to_email,
+            subject=f"FreshScan OTP: {otp}",
+            plain_text_content=f"Your OTP is {otp}",
+            html_content=f"""
+            <div style="font-family:Arial;">
+                <h2>🥬 FreshScan Verification</h2>
+                <p>Your OTP is:</p>
+                <h1 style="letter-spacing:5px;">{otp}</h1>
+                <p>Use this to {action}</p>
+                <p><small>Expires in 10 minutes</small></p>
+            </div>
+            """
+        )
+
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+
+        print("✅ OTP sent:", response.status_code)
+        return True
+
+    except Exception as e:
+        print("❌ SendGrid OTP error:", str(e))
+        return False
 
 # ════════════════════════════════════════════════════════════
 #  STEP 1 — SIGNUP: save pending user, send OTP
@@ -448,70 +435,39 @@ from email.mime.multipart import MIMEMultipart
 fridge_scans_collection = db["fridge_scans"]
 
 # ─── Helper: Send Alert Email ─────────────────────────────
-def send_alert_email(to_email: str, user_name: str, food_name: str, result: str, confidence: float):
-    """Sends an email alert when food is detected as spoiled or at risk."""
-    smtp_email    = os.getenv("SMTP_EMAIL")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+def send_alert_email(to_email, user_name, food_name, result, confidence):
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+    FROM_EMAIL = os.getenv("FROM_EMAIL")
 
-    if not smtp_email or not smtp_password:
-        print("⚠️  SMTP not configured — skipping email")
+    if not SENDGRID_API_KEY or not FROM_EMAIL:
+        print("❌ SendGrid not configured properly")
         return False
 
     try:
-        subject = f"🚨 FreshScan Alert: {food_name} needs attention!"
-
-        html = f"""
-        <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
-          <div style="background:linear-gradient(135deg,#166534,#16a34a);padding:32px;text-align:center">
-            <div style="font-size:48px">🥬</div>
-            <h1 style="color:white;margin:12px 0 4px;font-size:22px">FreshScan Fridge Alert</h1>
-            <p style="color:#bbf7d0;margin:0;font-size:14px">Automated Fridge Monitor</p>
-          </div>
-          <div style="padding:32px">
-            <p style="color:#374151;font-size:15px">Hi <strong>{user_name}</strong>,</p>
-            <p style="color:#374151;font-size:15px">Your fridge monitor just detected something that needs your attention:</p>
-
-            <div style="background:{'#fef2f2' if result == 'Spoiled' else '#fff7ed'};border:1.5px solid {'#fecaca' if result == 'Spoiled' else '#fed7aa'};border-radius:12px;padding:20px;margin:20px 0;text-align:center">
-              <div style="font-size:40px">{'🚨' if result == 'Spoiled' else '⚠️'}</div>
-              <div style="font-size:22px;font-weight:800;color:#111;margin:8px 0">{food_name}</div>
-              <div style="display:inline-block;background:{'#dc2626' if result == 'Spoiled' else '#f97316'};color:white;padding:6px 18px;border-radius:20px;font-weight:700;font-size:14px">{result}</div>
-              <p style="color:#6b7280;font-size:13px;margin:10px 0 0">Confidence: {confidence:.1f}%</p>
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=to_email,
+            subject=f"FreshScan Alert: {food_name}",
+            plain_text_content=f"{food_name} is {result}",
+            html_content=f"""
+            <div style="font-family:Arial;">
+                <h2>🥬 FreshScan Alert</h2>
+                <p>Hi <b>{user_name}</b>,</p>
+                <p><b>{food_name}</b> is detected as:</p>
+                <h2>{result}</h2>
+                <p>Confidence: {confidence}%</p>
             </div>
+            """
+        )
 
-            <p style="color:#374151;font-size:14px">
-              {'This item appears spoiled and should be removed from your fridge immediately.' if result == 'Spoiled' else 'This item is at risk of spoiling soon. Consider using it today.'}
-            </p>
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
 
-            <div style="background:#f0fdf4;border-radius:10px;padding:16px;margin-top:20px">
-              <p style="color:#166534;font-size:13px;font-weight:600;margin:0">💡 Quick Tips</p>
-              <ul style="color:#374151;font-size:13px;margin:8px 0 0;padding-left:20px">
-                <li>Check surrounding items for cross-contamination</li>
-                <li>Clean the area where the item was stored</li>
-                <li>Check temperature settings of your fridge</li>
-              </ul>
-            </div>
-          </div>
-          <div style="background:#f8fafc;padding:20px;text-align:center;border-top:1px solid #e2e8f0">
-            <p style="color:#9ca3af;font-size:12px;margin:0">Sent by FreshScan Fridge Monitor · {datetime.utcnow().strftime('%d %b %Y, %H:%M')} UTC</p>
-          </div>
-        </div>
-        """
-
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = smtp_email
-        msg["To"]      = to_email
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(smtp_email, smtp_password)
-            server.sendmail(smtp_email, to_email, msg.as_string())
-
-        print(f"✅ Alert email sent to {to_email}")
+        print("✅ Alert sent:", response.status_code)
         return True
 
     except Exception as e:
-        print(f"❌ Email error: {e}")
+        print("❌ SendGrid alert error:", str(e))
         return False
 
 
