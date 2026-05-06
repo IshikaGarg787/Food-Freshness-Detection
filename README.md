@@ -1,306 +1,214 @@
 <div align="center">
 
-# 🥦 FreshScan AI
-### AI-Powered Food Freshness Detection System
+# 🥬 FreshScan — Food Freshness Detection System
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-freshscan--nine.vercel.app-22c55e?style=for-the-badge)](https://freshscan-nine.vercel.app/)
-[![React](https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-ML_Service-3776AB?style=for-the-badge&logo=python)](https://python.org/)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-CNN_Model-FF6F00?style=for-the-badge&logo=tensorflow)](https://tensorflow.org/)
+An AI-powered full-stack web application that detects whether food is **Fresh or Rotten** using deep learning and real-time image analysis.
 
-> Upload or scan any fruit or vegetable — our deep learning model combined with sensor fusion delivers instant freshness predictions you can trust.
+---
 
-**GLA University, Mathura | B.Tech (Hons) CSE | March 2026**
+**🚀 Live Demo:**
+👉 Frontend: https://freshscan-nine.vercel.app/
+👉 Backend: https://sem-project-production.up.railway.app/
+
+⚠️ *Important: Please open the backend link once before using the app (it may sleep on free hosting).*
 
 </div>
 
 ---
 
-## 🌐 Live Demo
+## 📌 Overview
 
-**🔗 [https://freshscan-nine.vercel.app/](https://freshscan-nine.vercel.app/)**
+FreshScan solves a real-world problem — identifying food freshness quickly and reliably. Traditional inspection methods are manual and subjective, which can lead to food waste and health risks. This system automates freshness detection using a trained deep learning model and provides instant predictions with confidence scores.
 
----
-
-## 📋 Table of Contents
-
-- [About](#-about)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [System Architecture](#-system-architecture)
-- [Screenshots](#-screenshots)
-- [Getting Started](#-getting-started)
-- [Project Structure](#-project-structure)
-- [ML Model Details](#-ml-model-details)
-- [API Endpoints](#-api-endpoints)
-- [Team](#-team)
+The project follows a **modular full-stack architecture** integrating a React frontend, a Node.js backend, and a Flask-based ML microservice.
 
 ---
 
-## 🧠 About
+## ⚙️ Tech Stack
 
-**FreshScan AI** is a semester-end academic project that combines **computer vision** and **IoT sensor data** to build a practical, real-world food freshness classifier — with an automated **Fridge Monitor** that keeps watch so you don't have to.
+### 🖥️ Frontend
 
-The system classifies fruits and vegetables as **Fresh** or **Spoiled** using a trained Convolutional Neural Network (CNN), achieving **88–92% classification accuracy** on test data. It supports both static image uploads and live real-time camera detection.
+* React.js
+* HTML5, CSS3, JavaScript
+* Fetch API / Axios
 
-### Our Mission
-> Reduce food waste and improve food safety using accessible AI technology — so everyone knows exactly when their produce is at its freshest, and gets alerted before anything spoils.
+### 🔧 Backend
 
----
+* Node.js
+* Express.js
+* Multer (file upload handling)
+* JWT Authentication
 
-## ✨ Features
+### 🤖 Machine Learning
 
-| Feature | Description |
-|---|---|
-| 📸 **Upload & Analyze** | Upload any fruit/vegetable image and get an instant AI prediction |
-| 🎥 **Live Scan** | Real-time camera detection using the browser's getUserMedia API |
-| ❄️ **Fridge Monitor** | Automated periodic scanning with temperature and humidity tracking |
-| 📊 **Dashboard** | View all recent scans with confidence scores and timestamps |
-| 🌡️ **Sensor Fusion** | Combine visual AI with environmental data (temp, humidity, storage time) |
-| 🔐 **Auth System** | User registration and login with session management |
-| 📱 **Responsive Design** | Works on desktop, tablet, and mobile |
-| 🕒 **Prediction History** | Full history of all scans with Food Item, Result, Confidence, and Time |
+* Python
+* Flask
+* TensorFlow / Keras
+* MobileNetV2 (Transfer Learning)
 
----
+### 🗄️ Database
 
-## 🛠 Tech Stack
+* MongoDB Atlas
 
-### Frontend
-- **React.js** — Component-based UI
-- **CSS3 + Flexbox** — Responsive layout and styling
-- **Vercel** — Deployment
+### 📩 Additional Services
 
-### Backend
-- **Node.js + Express.js** — REST API server
-- **Multer** — File upload handling
-- **CORS middleware** — Cross-origin security
-- **SQLite** — Lightweight prediction history database
-
-### ML Microservice
-- **Python + Flask** — ML inference server
-- **TensorFlow / Keras** — CNN model training and inference
-- **OpenCV** — Image preprocessing
-- **NumPy + PIL** — Array manipulation and image handling
+* SendGrid (Email & OTP verification)
 
 ---
 
-## 🏗 System Architecture
+## 📊 Model Details
 
-```
-User Browser
-     │
-     ▼
-┌─────────────────────────────────┐
-│     Frontend (React.js)         │
-│  Upload · Live Scan · Dashboard │
-└──────────────┬──────────────────┘
-               │ POST /predict · GET /history
-               ▼
-┌─────────────────────────────────┐
-│    Backend (Node.js + Express)  │
-│  Router · Validator · DB Layer  │
-└──────────┬──────────────────────┘
-           │                    │
-     POST /classify         SQL queries
-           │                    │
-           ▼                    ▼
-┌─────────────────┐    ┌──────────────────┐
-│  ML Microservice│    │  SQLite Database  │
-│  Flask + CNN    │    │  predictions table│
-│  TF/Keras+OpenCV│    │                  │
-└─────────────────┘    └──────────────────┘
-```
-
-**End-to-end prediction time: 2–4 seconds**
+| Parameter         | Value                             |
+| ----------------- | --------------------------------- |
+| Dataset           | Kaggle Fresh & Rotten Food Images |
+| Model             | MobileNetV2 (Transfer Learning)   |
+| Optimizer         | Adam                              |
+| Loss Function     | Categorical Cross-Entropy         |
+| Epochs            | 20–30                             |
+| Batch Size        | 32                                |
+| Accuracy          | **88–92%**                        |
+| Data Augmentation | Flip, rotation, zoom, brightness  |
 
 ---
 
-## 📸 Screenshots
+## 🔄 System Workflow
 
-### Dashboard
-![Dashboard](screenshots/dashboard.png)
-
-### Upload & Result
-![Upload Result](screenshots/upload-result.png)
-
-### Live Scan
-![Live Scan](screenshots/live-scan.png)
-
-### Fridge Monitor
-![Fridge Monitor](screenshots/fridge-monitor.png)
-
-### Login & Sign Up
-![Login](screenshots/login.png)
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js ≥ 18
-- Python ≥ 3.9
-- pip
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/freshscan.git
-cd freshscan
-```
-
-### 2. Frontend setup
-
-```bash
-cd client
-npm install
-npm start
-```
-
-Frontend runs at `http://localhost:3000`
-
-### 3. Backend setup
-
-```bash
-cd server
-npm install
-node server.js
-```
-
-Backend runs at `http://localhost:5000`
-
-### 4. ML Microservice setup
-
-```bash
-cd ml_service
-pip install -r requirements.txt
-python app.py
-```
-
-Flask ML service runs at `http://localhost:5001`
-
-### Environment Variables
-
-Create a `.env` file in the `server/` directory:
-
-```env
-PORT=5000
-ML_SERVICE_URL=http://localhost:5001
-DB_PATH=./database/predictions.db
-```
-
----
-
-## 📁 Project Structure
-
-```
-freshscan/
-├── client/                  # React frontend
-│   ├── src/
-│   │   ├── components/      # Reusable UI components
-│   │   ├── pages/           # Dashboard, Upload, LiveScan, Fridge, About
-│   │   └── App.js
-│   └── package.json
-│
-├── server/                  # Node.js backend
-│   ├── routes/              # API route definitions
-│   ├── controllers/         # Request handling logic
-│   ├── middleware/          # File validation, error handling
-│   ├── config/              # Environment config
-│   ├── uploads/             # Temporary image storage
-│   └── server.js
-│
-├── ml_service/              # Python Flask ML microservice
-│   ├── app.py               # Flask server + /classify endpoint
-│   ├── model/
-│   │   └── freshness_model.h5
-│   └── requirements.txt
-│
-└── README.md
-```
-
----
-
-## 🤖 ML Model Details
-
-### Architecture (CNN)
-
-| Layer | Details |
-|---|---|
-| Input | 224 × 224 × 3 |
-| Conv2D + MaxPooling | × 3 layers, ReLU activation |
-| Flatten | Feature map → 1D vector |
-| Dense | 256 units, ReLU |
-| Dropout | 0.5 rate |
-| Output | Softmax, 2 classes (Fresh / Spoiled) |
-
-### Training
-
-| Parameter | Value |
-|---|---|
-| Dataset | Kaggle fresh & rotten food images |
-| Optimizer | Adam |
-| Loss function | Categorical Cross-Entropy |
-| Epochs | 20–30 |
-| Batch size | 32 |
-| Test accuracy | **88–92%** |
-| Data augmentation | Flip, rotation, zoom, brightness |
+1. User uploads image or captures via camera
+2. React frontend sends image to Node.js backend
+3. Backend validates and forwards image to Flask ML service
+4. Flask preprocesses image and runs CNN inference
+5. Model returns prediction (Fresh/Rotten + confidence)
+6. Backend stores result in MongoDB
+7. Frontend displays result and updates scan history
 
 ---
 
 ## 🔌 API Endpoints
 
-### Backend (Node.js — port 5000)
+### Backend (Node.js + Express)
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/predict` | Upload image, get freshness prediction |
-| `GET` | `/history` | Retrieve all past predictions |
+| Method | Endpoint              | Description                   |
+| ------ | --------------------- | ----------------------------- |
+| `POST` | `/predict`            | Upload image & get prediction |
+| `GET`  | `/scans/recent`       | Fetch recent scans            |
+| `POST` | `/auth/signup`        | Register user                 |
+| `POST` | `/auth/login`         | Login user                    |
+| `POST` | `/auth/verify-signup` | Verify OTP                    |
+| `POST` | `/auth/resend-otp`    | Resend OTP                    |
 
-### ML Microservice (Flask — port 5001)
+---
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/classify` | Preprocess image + run CNN inference |
+### ML Microservice (Flask)
 
-**Example response from `/predict`:**
+| Method | Endpoint    | Description                           |
+| ------ | ----------- | ------------------------------------- |
+| `POST` | `/classify` | Image preprocessing + model inference |
+
+---
+
+## 📤 Example Response
+
 ```json
 {
   "label": "Fresh",
   "confidence": 98.9,
-  "visual_score": 98.9,
-  "adjusted_score": 98.9,
   "analyzed_in_ms": 3613
 }
 ```
 
 ---
 
+## ✨ Features
+
+* 📷 Upload or scan food images
+* 🤖 AI-based freshness detection
+* 📊 Confidence score visualization
+* 🔐 Secure authentication using JWT
+* 🕐 Scan history tracking (MongoDB)
+* 📩 OTP-based email verification (SendGrid)
+* ⚡ Fast and responsive UI
+
+---
+
+## 🧠 Key Concepts Used
+
+* Transfer Learning (MobileNetV2)
+* REST API Architecture
+* JWT Authentication
+* Microservice Architecture (Flask ML service)
+* MongoDB NoSQL Database
+
+---
+
+## 🛠️ Local Setup
+
+### 1️⃣ Clone Repository
+
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+```
+
+### 2️⃣ Setup Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+### 3️⃣ Setup Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### 4️⃣ Setup ML Service
+
+```bash
+cd ml-service
+pip install -r requirements.txt
+python app.py
+```
+
+---
+
+## 🌐 Deployment
+
+* **Frontend (Vercel):** https://freshscan-nine.vercel.app/
+* **Backend (Railway):** https://sem-project-production.up.railway.app/
+* **Database:** MongoDB Atlas
+
+---
+
 ## 👩‍💻 Team
 
-| Name | Roll Number |
-|---|---|
-| Ishika Garg | 2415800038 |
-| Vanshika Gupta | 2415800092 |
-| Kajal Chaudhary | 2415800039 |
+| Name            | Roll Number |
+| --------------- | ----------- |
+| Ishika Garg     | 2415800038  |
+| Vanshika Gupta  | 2415800092  |
+| Kajal Chaudhary | 2415800039  |
 
-**Mentor:** Dr. Ruby Panwar, Assistant Professor
+**Mentor:** Dr. Ruby Panwar
 **Department:** Computer Engineering & Applications
-**Institution:** GLA University, Mathura — 281406, INDIA
+**Institution:** GLA University, Mathura — 281406, India
 
 ---
 
 ## 📄 License
 
-This project is developed for academic purposes at GLA University.
+This project is developed for academic purposes at GLA University (2026).
 
 ---
 
 <div align="center">
 
-Made with 💚 by Team FreshScan | GLA University 2026
+Made with 💚 by Team FreshScan 🚀
 
-**[🚀 Try it live →](https://freshscan-nine.vercel.app/)**
+🌿 **Try it Live → https://freshscan-nine.vercel.app/**
 
 </div>
+
+
