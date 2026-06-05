@@ -7,7 +7,9 @@ An AI-powered full-stack web application that detects whether food is **Fresh or
 ---
 
 **🚀 Live Demo:**
+
 👉 Frontend: https://freshscan-nine.vercel.app/
+
 👉 Backend: https://sem-project-production.up.railway.app/
 
 ⚠️ *Important: Please open the backend link once before using the app (it may sleep on free hosting).*
@@ -185,15 +187,11 @@ python app.py
 
 ## 👩‍💻 Team
 
-| Name            | Roll Number |
-| --------------- | ----------- |
-| Ishika Garg     | 2415800038  |
-| Vanshika Gupta  | 2415800092  |
-| Kajal Chaudhary | 2415800039  |
-
-**Mentor:** Dr. Ruby Panwar
-**Department:** Computer Engineering & Applications
-**Institution:** GLA University, Mathura — 281406, India
+| Name            |
+| --------------- |
+| Ishika Garg (Team Leader)   |
+| Vanshika Gupta  |
+| Kajal Chaudhary |
 
 ---
 
